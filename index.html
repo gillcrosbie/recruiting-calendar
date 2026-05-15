@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Recruiting Calendar</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e1a; color: #e8eaf0; min-height: 100vh; padding: 20px; }
+  h1 { text-align: center; font-size: 1.4rem; color: #c8d4f0; margin-bottom: 6px; letter-spacing: 1px; }
+  .subtitle { text-align: center; font-size: 0.8rem; color: #7a8aaa; margin-bottom: 20px; }
+
+  .legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; }
+  .legend-swatch { width: 28px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .sw-tournament    { background: #e05c5c; }
+  .sw-team-showcase { background: #4caf7d; }
+  .sw-ind-showcase  { background: #c8b030; }
+  .sw-camp          { background: #5c9ee0; }
+  .legend-dash { width: 20px; height: 0; border-top: 2px dashed #6a7a9a; flex-shrink: 0; }
+
+  .legend2 { display: flex; gap: 16px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .pip { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .pip-maddie  { background: #e08080; }
+  .pip-mya     { background: #80c8a0; }
+  .pip-ashlyn  { background: #80a8e0; }
+  .pip-empty   { background: #2a3050; border: 1px solid #3a4060; }
+
+  .filter-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-btn { background: #1e2640; border: 1px solid #2e3860; color: #9aaac8; padding: 5px 13px; border-radius: 20px; cursor: pointer; font-size: 0.76rem; }
+  .filter-btn.active { color: #e8eaf0; border-color: #5a7aaa; background: #2a3a60; }
+  .filter-btn:hover { background: #2a3560; }
+
+  .nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+  .nav button { background: #1e2640; border: 1px solid #2e3860; color: #c8d4f0; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+  .nav button:hover { background: #2a3560; }
+  .nav h2 { font-size: 1.1rem; color: #c8d4f0; min-width: 200px; text-align: center; }
+
+  .calendar { background: #111627; border-radius: 12px; overflow: hidden; border: 1px solid #1e2a48; }
+  .day-headers { display: grid; grid-template-columns: repeat(7, 1fr); background: #161e38; }
+  .day-header { text-align: center; padding: 8px 4px; font-size: 0.75rem; color: #7a8aaa; font-weight: 600; }
+  .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .day-cell { min-height: 90px; border: 1px solid #1a2040; padding: 4px; }
+  .day-cell.other-month { background: #0d1020; }
+  .day-cell.today { background: #1a2240; }
+  .day-num { font-size: 0.72rem; color: #5a6888; margin-bottom: 3px; }
+  .day-cell.today .day-num { color: #6aa0e8; font-weight: 700; }
+
+  .event { border-radius: 4px; padding: 2px 5px; font-size: 0.63rem; margin-bottom: 2px; line-height: 1.3; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event.tournament     { background: #7a1f1f; color: #f8b0b0; border-left: 3px solid #e05c5c; }
+  .event.team-showcase  { background: #1a4a30; color: #a0f0c0; border-left: 3px solid #4caf7d; }
+  .event.ind-showcase   { background: #3a3000; color: #f0d870; border-left: 3px solid #c8b030; }
+  .event.camp           { background: #1a2e5a; color: #a8c8f8; border-left: 3px solid #5c9ee0; }
+  .event.pending        { opacity: 0.6; border-left-style: dashed; }
+
+  .pip-row { display: flex; gap: 2px; margin-top: 2px; }
+  .pip-cal { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .sidebar { margin-top: 20px; background: #111627; border-radius: 12px; border: 1px solid #1e2a48; padding: 16px; }
+  .sidebar h3 { font-size: 0.9rem; color: #c8d4f0; margin-bottom: 12px; border-bottom: 1px solid #1e2a48; padding-bottom: 8px; }
+  .event-list-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #141c30; }
+  .event-list-item:last-child { border-bottom: none; }
+  .event-badge { border-radius: 4px; padding: 2px 7px; font-size: 0.68rem; font-weight: 600; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
+  .badge-tournament    { background: #7a1f1f; color: #f8b0b0; }
+  .badge-team-showcase { background: #1a4a30; color: #a0f0c0; }
+  .badge-ind-showcase  { background: #3a3000; color: #f0d870; }
+  .badge-camp          { background: #1a2e5a; color: #a8c8f8; }
+  .event-info { flex: 1; min-width: 0; }
+  .event-info .name  { font-size: 0.85rem; color: #d0daf0; font-weight: 600; }
+  .event-info .date  { font-size: 0.74rem; color: #7a8aaa; margin-top: 2px; }
+  .event-info .notes { font-size: 0.72rem; color: #5a7aaa; margin-top: 1px; }
+  .players-row { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .player-chip { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .chip-maddie { background: #4a1a1a; color: #f0a0a0; border: 1px solid #7a3030; }
+  .chip-mya    { background: #1a3a28; color: #80e0a8; border: 1px solid #2a6040; }
+  .chip-ashlyn { background: #1a2e50; color: #90b8f0; border: 1px solid #2a4870; }
+  .chip-all    { background: #2a2040; color: #c0b0f0; border: 1px solid #4a3a70; }
+  .chip-none   { background: #1e2030; color: #5a6888; border: 1px solid #2a2e40; font-style: italic; }
+  .del-btn { background: #3a1a1a; color: #f8b0b0; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; flex-shrink: 0; margin-top: 2px; }
+  .del-btn:hover { background: #5a1a1a; }
+  .empty-msg { color: #4a5a7a; font-size: 0.82rem; text-align: center; padding: 14px 0; }
+
+  .add-section { margin-top: 20px; background: #111627; border-radius: 12px; border: 1px solid #1e2a48; padding: 16px; }
+  .add-section h3 { font-size: 0.9rem; color: #c8d4f0; margin-bottom: 12px; border-bottom: 1px solid #1e2a48; padding-bottom: 8px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+  label { font-size: 0.75rem; color: #7a8aaa; }
+  input[type="text"], input[type="date"], select { background: #1a2240; border: 1px solid #2e3860; color: #e0e8ff; padding: 7px 10px; border-radius: 6px; font-size: 0.82rem; outline: none; width: 100%; }
+  input[type="text"]:focus, input[type="date"]:focus, select:focus { border-color: #4a6aaa; }
+  .players-check { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 4px; }
+  .players-check label { font-size: 0.78rem; color: #9aaac8; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .players-check input[type="checkbox"] { accent-color: #5c9ee0; width: 14px; height: 14px; cursor: pointer; }
+  .reg-note { font-size: 0.72rem; color: #4a5a78; font-style: italic; padding-top: 6px; }
+  .add-btn { background: #2a4a8a; color: #a8c8f8; border: 1px solid #3a5aaa; padding: 7px 18px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 600; white-space: nowrap; height: 34px; }
+  .add-btn:hover { background: #3a5aaa; }
+  #player-reg-section { transition: opacity 0.2s; }
+</style>
+</head>
+<body>
+
+<h1>RECRUITING CALENDAR</h1>
+<p class="subtitle">NCAA Women's Lacrosse — 2026</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch sw-tournament"></div> Tournament</div>
+  <div class="legend-item"><div class="legend-swatch sw-team-showcase"></div> Team Showcase</div>
+  <div class="legend-item"><div class="legend-swatch sw-ind-showcase"></div> Individual Showcase</div>
+  <div class="legend-item"><div class="legend-swatch sw-camp"></div> Prospect Camp</div>
+  <div class="legend-item"><div class="legend-dash"></div> Not Yet Registered</div>
+</div>
+<div class="legend2">
+  <div class="legend-item"><span class="pip pip-maddie"></span> Maddie</div>
+  <div class="legend-item"><span class="pip pip-mya"></span> Mya</div>
+  <div class="legend-item"><span class="pip pip-ashlyn"></span> Ashlyn</div>
+  <div class="legend-item"><span class="pip pip-empty"></span> Not registered</div>
+</div>
+
+<div class="filter-row">
+  <button class="filter-btn active" onclick="setFilter('all',this)">All Events</button>
+  <button class="filter-btn" onclick="setFilter('tournament',this)">Tournaments</button>
+  <button class="filter-btn" onclick="setFilter('team-showcase',this)">Team Showcases</button>
+  <button class="filter-btn" onclick="setFilter('ind-showcase',this)">Individual Showcases</button>
+  <button class="filter-btn" onclick="setFilter('camp',this)">Camps</button>
+</div>
+
+<div class="nav">
+  <button onclick="changeMonth(-1)">&#8249;</button>
+  <h2 id="month-label"></h2>
+  <button onclick="changeMonth(1)">&#8250;</button>
+</div>
+
+<div class="calendar">
+  <div class="day-headers">
+    <div class="day-header">SUN</div><div class="day-header">MON</div><div class="day-header">TUE</div>
+    <div class="day-header">WED</div><div class="day-header">THU</div><div class="day-header">FRI</div><div class="day-header">SAT</div>
+  </div>
+  <div class="days-grid" id="days-grid"></div>
+</div>
+
+<div class="sidebar">
+  <h3>All Events <span id="list-count" style="color:#5a6888;font-weight:400;font-size:0.8rem;"></span></h3>
+  <div id="event-list"></div>
+</div>
+
+<div class="add-section">
+  <h3>Add Event</h3>
+  <div class="form-row">
+    <div class="form-group" style="min-width:200px;">
+      <label>Event Name</label>
+      <input type="text" id="input-name" placeholder="e.g. Apex The Grind" />
+    </div>
+    <div class="form-group" style="max-width:148px;">
+      <label>Start Date</label>
+      <input type="date" id="input-start" />
+    </div>
+    <div class="form-group" style="max-width:148px;">
+      <label>End Date (optional)</label>
+      <input type="date" id="input-end" />
+    </div>
+    <div class="form-group" style="max-width:200px;">
+      <label>Notes (time, location, etc.)</label>
+      <input type="text" id="input-notes" placeholder="e.g. 9am–3pm" />
+    </div>
+    <div class="form-group" style="max-width:175px;">
+      <label>Type</label>
+      <select id="input-type" onchange="togglePlayerReg()">
+        <option value="tournament">Tournament</option>
+        <option value="team-showcase">Team Showcase</option>
+        <option value="ind-showcase">Individual Showcase</option>
+        <option value="camp">Prospect Camp</option>
+      </select>
+    </div>
+    <div class="form-group" style="min-width:220px;" id="player-reg-section">
+      <label>Registered Players</label>
+      <div class="players-check">
+        <label><input type="checkbox" id="chk-maddie"> Maddie</label>
+        <label><input type="checkbox" id="chk-mya"> Mya</label>
+        <label><input type="checkbox" id="chk-ashlyn"> Ashlyn</label>
+      </div>
+    </div>
+    <button class="add-btn" onclick="addEvent()">Add</button>
+  </div>
+</div>
+
+<script>
+let currentYear = 2026, currentMonth = 5;
+let activeFilter = 'all';
+
+// For tournaments & team showcases: players = ['ALL'] (auto)
+// For ind-showcases & camps: players = [] (none) or ['Maddie','Mya'] etc.
+const ALL_PLAYERS = ['Maddie','Mya','Ashlyn'];
+const NEEDS_PLAYER_REG = ['ind-showcase','camp'];
+
+const PIP_COLORS = { Maddie:'#e08080', Mya:'#80c8a0', Ashlyn:'#80a8e0' };
+const CHIP_CLASS  = { Maddie:'chip-maddie', Mya:'chip-mya', Ashlyn:'chip-ashlyn' };
+const TYPE_LABEL  = { tournament:'Tournament', 'team-showcase':'Team Showcase', 'ind-showcase':'Individual Showcase', camp:'Prospect Camp' };
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+let events = [
+  // TOURNAMENTS — auto all-registered
+  { name:"Knight's Cup",         start:"2026-06-08", end:null,          type:"tournament",    notes:"",               players:['ALL'] },
+  { name:"Live, Love, Lax",      start:"2026-06-13", end:"2026-06-14",  type:"tournament",    notes:"",               players:['ALL'] },
+  { name:"NXT Continental Cup",  start:"2026-06-26", end:"2026-06-27",  type:"tournament",    notes:"",               players:['ALL'] },
+  { name:'Apex "The Grind"',     start:"2026-07-10", end:"2026-07-12",  type:"tournament",    notes:"West Chester, PA", players:['ALL'] },
+  { name:"American Selects",     start:"2026-07-23", end:"2026-07-24",  type:"tournament",    notes:"",               players:['ALL'] },
+  { name:"Apex Round Up",        start:"2026-10-17", end:"2026-10-18",  type:"tournament",    notes:"",               players:['ALL'] },
+  { name:"President's Cup",      start:"2026-11-20", end:"2026-11-22",  type:"tournament",    notes:"",               players:['ALL'] },
+  // TEAM SHOWCASES — auto all-registered
+  { name:"Red & White Rising",   start:"2026-06-29", end:"2026-06-30",  type:"team-showcase", notes:"",               players:['ALL'] },
+  { name:"Northeast Showcase",   start:"2026-11-08", end:null,          type:"team-showcase", notes:"",               players:['ALL'] },
+  // PROSPECT CAMPS — per-player registration
+  { name:"Cincinnati",           start:"2026-07-08", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Wagner",               start:"2026-07-08", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Rhode Island",         start:"2026-07-13", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Marist Prospect Day",  start:"2026-07-15", end:null,          type:"camp",          notes:"4:30–8pm",        players:[] },
+  { name:"Binghamton",           start:"2026-07-20", end:null,          type:"camp",          notes:"1–4pm",           players:[] },
+  { name:"Vermont",              start:"2026-07-21", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"GVSU",                 start:"2026-07-27", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Delaware",             start:"2026-08-15", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Rhode Island",         start:"2026-08-16", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Michigan",             start:"2026-08-21", end:"2026-08-22",  type:"camp",          notes:"",               players:[] },
+  { name:"UMass Lowell",         start:"2026-08-21", end:null,          type:"camp",          notes:"4–7pm",           players:[] },
+  { name:"UMass Lowell",         start:"2026-08-22", end:null,          type:"camp",          notes:"9:30am–12:30pm",  players:[] },
+  { name:"Pitt",                 start:"2026-08-22", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"Rhode Island",         start:"2026-08-23", end:null,          type:"camp",          notes:"",               players:[] },
+  { name:"UMass Amherst Fall ID",start:"2026-09-12", end:null,          type:"camp",          notes:"9am–3pm",         players:[] },
+];
+
+function needsPlayerReg(type) { return NEEDS_PLAYER_REG.includes(type); }
+
+function isRegistered(ev) {
+  if (!needsPlayerReg(ev.type)) return true; // tournaments/team showcases always registered
+  return ev.players && ev.players.length > 0;
+}
+
+function togglePlayerReg() {
+  const type = document.getElementById('input-type').value;
+  const sec  = document.getElementById('player-reg-section');
+  if (needsPlayerReg(type)) {
+    sec.style.opacity = '1';
+    sec.style.pointerEvents = 'auto';
+    sec.querySelector('label').textContent = 'Registered Players';
+  } else {
+    sec.style.opacity = '0.3';
+    sec.style.pointerEvents = 'none';
+    ALL_PLAYERS.forEach(p => document.getElementById('chk-'+p.toLowerCase()).checked = false);
+  }
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+  render();
+}
+
+function filtered() {
+  return activeFilter === 'all' ? events : events.filter(e => e.type === activeFilter);
+}
+
+function getDates(ev) {
+  const dates = [];
+  const s = new Date(ev.start+'T12:00:00');
+  const e = ev.end ? new Date(ev.end+'T12:00:00') : s;
+  let c = new Date(s);
+  while (c <= e) { dates.push(c.toISOString().slice(0,10)); c.setDate(c.getDate()+1); }
+  return dates;
+}
+
+function eventsOn(ds) { return filtered().filter(ev => getDates(ev).includes(ds)); }
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function render() {
+  document.getElementById('month-label').textContent = MONTHS[currentMonth] + ' ' + currentYear;
+  const grid = document.getElementById('days-grid');
+  grid.innerHTML = '';
+
+  const firstDay    = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+  const daysInPrev  = new Date(currentYear, currentMonth, 0).getDate();
+  const todayStr    = new Date().toISOString().slice(0,10);
+
+  let cells = [];
+  for (let i = firstDay-1; i >= 0; i--) cells.push({day: daysInPrev-i, m:'prev'});
+  for (let d = 1; d <= daysInMonth; d++) cells.push({day:d, m:'cur'});
+  for (let d = 1; d <= 42-cells.length; d++) cells.push({day:d, m:'next'});
+
+  cells.forEach(cell => {
+    const div = document.createElement('div');
+    div.className = 'day-cell' + (cell.m !== 'cur' ? ' other-month' : '');
+    let yr = currentYear, mo = currentMonth;
+    if (cell.m === 'prev') { mo--; if (mo<0){mo=11;yr--;} }
+    if (cell.m === 'next') { mo++; if (mo>11){mo=0;yr++;} }
+    const ds = `${yr}-${pad(mo+1)}-${pad(cell.day)}`;
+    if (ds === todayStr) div.classList.add('today');
+
+    const dn = document.createElement('div');
+    dn.className = 'day-num';
+    dn.textContent = cell.day;
+    div.appendChild(dn);
+
+    eventsOn(ds).forEach(ev => {
+      const allDates = getDates(ev);
+      const isFirst  = allDates[0] === ds;
+      const reg      = isRegistered(ev);
+
+      const ed = document.createElement('div');
+      ed.className = 'event ' + ev.type + (reg ? '' : ' pending');
+      ed.textContent = (isFirst ? '' : '↳ ') + ev.name;
+      let tip = ev.name;
+      if (ev.notes) tip += ' | ' + ev.notes;
+      if (!needsPlayerReg(ev.type)) tip += ' | All players';
+      else tip += reg ? ' | ' + ev.players.join(', ') : ' | not yet registered';
+      ed.title = tip;
+      div.appendChild(ed);
+
+      // Pip dots — only for ind-showcase and camp, only on first day
+      if (isFirst && needsPlayerReg(ev.type)) {
+        const pr = document.createElement('div');
+        pr.className = 'pip-row';
+        ALL_PLAYERS.forEach(p => {
+          const pip = document.createElement('span');
+          pip.className = 'pip-cal';
+          pip.style.background = ev.players.includes(p) ? PIP_COLORS[p] : '#2a3050';
+          pip.style.border = ev.players.includes(p) ? 'none' : '1px solid #3a4060';
+          pip.title = p + ': ' + (ev.players.includes(p) ? 'registered' : 'not registered');
+          pr.appendChild(pip);
+        });
+        div.appendChild(pr);
+      }
+    });
+
+    grid.appendChild(div);
+  });
+
+  renderList();
+}
+
+function fmtDate(s) {
+  return new Date(s+'T12:00:00').toLocaleDateString('en-CA', {month:'short', day:'numeric', year:'numeric'});
+}
+
+function renderList() {
+  const list = document.getElementById('event-list');
+  const fe = filtered();
+  document.getElementById('list-count').textContent = `(${fe.length} events)`;
+  if (!fe.length) { list.innerHTML = '<div class="empty-msg">No events in this category.</div>'; return; }
+
+  const sorted = [...fe].sort((a,b) => a.start.localeCompare(b.start));
+  list.innerHTML = sorted.map(ev => {
+    const dt = ev.end ? `${fmtDate(ev.start)} – ${fmtDate(ev.end)}` : fmtDate(ev.start);
+    const ri = events.indexOf(ev);
+
+    let playerHTML = '';
+    if (!needsPlayerReg(ev.type)) {
+      playerHTML = `<span class="player-chip chip-all">All Players</span>`;
+    } else if (ev.players.length === 0) {
+      playerHTML = `<span class="player-chip chip-none">no one registered yet</span>`;
+    } else {
+      playerHTML = ev.players.map(p => `<span class="player-chip ${CHIP_CLASS[p]}">${p}</span>`).join('');
+    }
+
+    return `<div class="event-list-item">
+      <span class="event-badge badge-${ev.type}">${TYPE_LABEL[ev.type]}</span>
+      <div class="event-info">
+        <div class="name">${ev.name}</div>
+        <div class="date">${dt}</div>
+        ${ev.notes ? `<div class="notes">${ev.notes}</div>` : ''}
+        <div class="players-row">${playerHTML}</div>
+      </div>
+      <button class="del-btn" onclick="deleteEvent(${ri})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addEvent() {
+  const name  = document.getElementById('input-name').value.trim();
+  const start = document.getElementById('input-start').value;
+  const end   = document.getElementById('input-end').value;
+  const notes = document.getElementById('input-notes').value.trim();
+  const type  = document.getElementById('input-type').value;
+
+  if (!name||!start) { alert('Name and start date required.'); return; }
+  if (end && end < start) { alert('End must be on or after start.'); return; }
+
+  let players;
+  if (!needsPlayerReg(type)) {
+    players = ['ALL'];
+  } else {
+    players = ALL_PLAYERS.filter(p => document.getElementById('chk-'+p.toLowerCase()).checked);
+  }
+
+  events.push({name, start, end:end||null, type, notes, players});
+
+  document.getElementById('input-name').value  = '';
+  document.getElementById('input-start').value = '';
+  document.getElementById('input-end').value   = '';
+  document.getElementById('input-notes').value = '';
+  ALL_PLAYERS.forEach(p => document.getElementById('chk-'+p.toLowerCase()).checked = false);
+
+  const d = new Date(start+'T12:00:00');
+  currentYear = d.getFullYear(); currentMonth = d.getMonth();
+  render();
+}
+
+function deleteEvent(idx) {
+  if (confirm('Remove "'+events[idx].name+'"?')) { events.splice(idx,1); render(); }
+}
+
+togglePlayerReg();
+render();
+</script>
+</body>
+</html>
